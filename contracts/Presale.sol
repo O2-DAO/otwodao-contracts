@@ -58,7 +58,7 @@ contract Presale is Ownable {
         wsOHM = _wsOHM;
         USDT = _USDT;
 
-        endOfSale = _saleLength.add(block.timestamp);
+        endOfSale = _saleLength.add(_saleStartTimestamp);
 
         // saleStarted = true;
 
