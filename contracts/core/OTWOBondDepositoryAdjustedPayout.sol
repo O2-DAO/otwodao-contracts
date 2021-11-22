@@ -1,8 +1,3 @@
-/**
- *Submitted for verification at snowtrace.io on 2021-11-05
-*/
-
-import './console.sol';
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.7.5;
 
@@ -647,7 +642,7 @@ interface IStakingHelper {
     function stake( uint _amount, address _recipient ) external;
 }
 
-contract OTWOBondDepository is Ownable {
+contract OTWOBondDepositoryAdjustedPayout is Ownable {
 
     using FixedPoint for *;
     using SafeERC20 for IERC20;
@@ -741,7 +736,6 @@ contract OTWOBondDepository is Ownable {
         treasury = _treasury;
         require( _DAO != address(0) );
         DAO = _DAO;
-        // bondCalculator should be address(0) if not LP bond
         bondCalculator = _bondCalculator;
         isLiquidityBond = ( _bondCalculator != address(0) );
     }
@@ -769,10 +763,10 @@ contract OTWOBondDepository is Ownable {
         terms = Terms ({
             controlVariable: _controlVariable,
             minimumPrice: _minimumPrice,
-            maxPayout: _maxPayout,  // max 1% of totalSupply of OTWO
-            fee: _fee, // DAO fee
-            maxDebt: _maxDebt, // Set to inifinity
-            vestingTerm: _vestingTerm //  5 days in seconds
+            maxPayout: _maxPayout, 
+            fee: _fee,
+            maxDebt: _maxDebt, 
+            vestingTerm: _vestingTerm 
         });
         totalDebt = _initialDebt;
         lastDecay = uint32(block.timestamp);
@@ -794,7 +788,7 @@ contract OTWOBondDepository is Ownable {
             require( _input >= 129600, "Vesting must be longer than 36 hours" );
             terms.vestingTerm = uint32(_input);
         } else if ( _parameter == PARAMETER.PAYOUT ) { // 1
-            require( _input <= 1000, "Payout cannot be above 1 percent" );
+            require( _input <= 10000, "Payout cannot be above 10 percent" );
             terms.maxPayout = _input;
         } else if ( _parameter == PARAMETER.FEE ) { // 2
             require( _input <= 10000, "DAO fee cannot exceed payout" );
@@ -819,7 +813,6 @@ contract OTWOBondDepository is Ownable {
         uint _target,
         uint32 _buffer 
     ) external onlyPolicy() {
-        require( _increment <= terms.controlVariable.mul( 25 ).div( 1000 ), "Increment too large" );
 
         adjustment = Adjust({
             add: _addition,
@@ -868,7 +861,7 @@ contract OTWOBondDepository is Ownable {
         decayDebt();
         require( totalDebt <= terms.maxDebt, "Max capacity reached" );
         
-        uint priceInUSD = bondPriceInUSD(); // Stored in bond info
+        uint priceInUSD = bondPriceInUSD();
         uint nativePrice = _bondPrice();
 
         require( _maxPrice >= nativePrice, "Slippage limit: more than max price" ); // slippage protection
@@ -877,11 +870,11 @@ contract OTWOBondDepository is Ownable {
         
         uint payout = payoutFor( value ); // payout to bonder is computed
 
-        require( payout >= 10000000, "Bond too small" ); // must be > 0.01 OHM 
-        require( payout <= maxPayout(), "Bond too large"); // size protection because there is no slippage
+        require( payout >= 10000, "Bond too small" ); 
+        require( payout <= maxPayout(), "Bond too large"); 
 
         // profits are calculated
-        uint fee = payout.mul( terms.fee ).div( 10000 );
+        uint fee = payout.mul( terms.fee ).div( 10 );
 
         uint profit = value.sub( payout ).sub( fee );
 
@@ -898,10 +891,7 @@ contract OTWOBondDepository is Ownable {
             IERC20( OTWO ).safeTransfer( DAO, fee ); 
         }
         
-        // total debt is increased
-        // total debt = 1000 OTWO
         totalDebt = totalDebt.add( value ); 
-        // depositor info is stored
         bondInfo[ _depositor ] = Bond({ 
             payout: bondInfo[ _depositor ].payout.add( payout ),
             vesting: terms.vestingTerm,
@@ -909,11 +899,10 @@ contract OTWOBondDepository is Ownable {
             pricePaid: priceInUSD
         });
 
-        // indexed events are emitted
         emit BondCreated( _amount, payout, block.timestamp.add( terms.vestingTerm ), priceInUSD );
         emit BondPriceChanged( bondPriceInUSD(), _bondPrice(), debtRatio() );
 
-        adjust(); // control variable is adjusted
+        adjust();
         return payout; 
     }
 
@@ -925,7 +914,6 @@ contract OTWOBondDepository is Ownable {
      */ 
     function redeem( address _recipient, bool _stake ) external returns ( uint ) {        
         Bond memory info = bondInfo[ _recipient ];
-        // (seconds since last interaction / vesting term remaining)
         uint percentVested = percentVestedFor( _recipient );
 
         if ( percentVested >= 10000 ) { // if fully vested
@@ -1025,9 +1013,6 @@ contract OTWOBondDepository is Ownable {
      *  @return uint
      */
     function payoutFor( uint _value ) public view returns ( uint ) {
-        // 10000 : 1
-        // 5000 : 0.5
-        // FixedPoint(1, bondPrice())
         return FixedPoint.fraction( _value, bondPrice() ).decode112with18().div( 1e16 );
     }
 
@@ -1036,8 +1021,9 @@ contract OTWOBondDepository is Ownable {
      *  @notice calculate current bond premium
      *  @return price_ uint
      */
-    function bondPrice() public view returns ( uint price_ ) {     
+    function bondPrice() public view returns ( uint price_ ) {        
         price_ = terms.controlVariable.mul( debtRatio() ).add( 1000000000 ).div( 1e7 );
+
         if ( price_ < terms.minimumPrice ) {
             price_ = terms.minimumPrice;
         }
@@ -1062,9 +1048,9 @@ contract OTWOBondDepository is Ownable {
      */
     function bondPriceInUSD() public view returns ( uint price_ ) {
         if( isLiquidityBond ) {
-            price_ = bondPrice().mul( IBondCalculator( bondCalculator ).markdown( principle ) );
+            price_ = bondPrice().mul( IBondCalculator( bondCalculator ).markdown( principle ) ).div( 100 );
         } else {
-            price_ = bondPrice().mul( 10 ** IERC20( principle ).decimals() );
+            price_ = bondPrice().mul( 10 ** IERC20( principle ).decimals() ).div( 100 );
         }
     }
 
@@ -1098,7 +1084,6 @@ contract OTWOBondDepository is Ownable {
      *  @return uint
      */
     function currentDebt() public view returns ( uint ) {
-        // 800 - 0 
         return totalDebt.sub( debtDecay() );
     }
 
@@ -1147,8 +1132,6 @@ contract OTWOBondDepository is Ownable {
             pendingPayout_ = payout.mul( percentVested ).div( 10000 );
         }
     }
-
-
 
 
     /* ======= AUXILLIARY ======= */

@@ -282,7 +282,7 @@ contract OTWOWSOHMBondingCalculator is IBondingCalculator {
         uint decimals = token0.add( token1 ).sub( IERC20( _pair ).decimals() );
 
         (uint reserve0, uint reserve1, ) = IUniswapV2Pair( _pair ).getReserves();
-        k_ = reserve0.mul(reserve1).div( 10 ** decimals ).mul(1000);
+        k_ = reserve0.mul(reserve1).div( 10 ** decimals );
     }
 
     function getTotalValue( address _pair ) public view returns ( uint _value ) {

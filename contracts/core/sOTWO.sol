@@ -2,7 +2,6 @@
  *Submitted for verification at snowtrace.io on 2021-11-05
 */
 
-import './console.sol';
 
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.7.5;
@@ -1104,7 +1103,6 @@ contract sOTWO is ERC20Permit, Ownable {
         }
 
         _gonsPerFragment = TOTAL_GONS.div( _totalSupply );
-
 
         _storeRebase( circulatingSupply_, profit_, epoch_ );
 

@@ -1,9 +1,3 @@
-/**
- *Submitted for verification at snowtrace.io on 2021-11-05
-*/
-
-import './console.sol';
-
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pragma solidity 0.7.5;
@@ -427,10 +421,6 @@ contract Distributor is Policy {
             // distribute rewards to each recipient
             for ( uint i = 0; i < info.length; i++ ) {
                 if ( info[ i ].rate > 0 ) {
-                    console.log("Minting rewards, %s is the recipient, %s is the amount", 
-                    info[ i ].recipient,
-                    nextRewardAt( info[ i ].rate ) 
-                    );
                     ITreasury( treasury ).mintRewards( // mint and send from treasury
                         info[ i ].recipient, 
                         nextRewardAt( info[ i ].rate ) 

@@ -1,47 +1,3 @@
-/**
- *Submitted for verification at polygonscan.com on 2021-10-12
-*/
-import './console.sol';
-
-
-// ██╗  ██╗██╗     ██╗███╗   ███╗ █████╗     ██████╗  █████╗  ██████╗
-// ██║ ██╔╝██║     ██║████╗ ████║██╔══██╗    ██╔══██╗██╔══██╗██╔═══██╗
-// █████╔╝ ██║     ██║██╔████╔██║███████║    ██║  ██║███████║██║   ██║
-// ██╔═██╗ ██║     ██║██║╚██╔╝██║██╔══██║    ██║  ██║██╔══██║██║   ██║
-// ██║  ██╗███████╗██║██║ ╚═╝ ██║██║  ██║    ██████╔╝██║  ██║╚██████╔╝
-// ╚═╝  ╚═╝╚══════╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝
-
-//.            ..          .       .  .            '
-//            ''......................'.           .
-//             ..                    ..            .
-//              ..                  ..             .
-//               ..      ....      ..              .
-//                ..    ......    ..               .
-//                 ..  ..    .. ...                .
-//                ...,,.......','...               .
-//             ......,;'......';,......            .
-//                 ......    .. ..                 .
-//                ..    ......   ...               .
-//               ..      .'..     ...              .
-//              ..                  ..             .
-//             ..                    ..            .
-//            ...                    .'.           .
-//.           ....                  ....           '
-//'                                                :
-
-
-
-//     __ __  __ _                   ______
-//    / //_/ / /(_)____ ___   ____ _/_  __/_____ ___   ____ _ _____ __  __ _____ __  __
-//   / ,<   / // // __ `__ \ / __ `/ / /  / ___// _ \ / __ `// ___// / / // ___// / / /
-//  / /| | / // // / / / / // /_/ / / /  / /   /  __// /_/ /(__  )/ /_/ // /   / /_/ /
-// /_/ |_|/_//_//_/ /_/ /_/ \__,_/ /_/  /_/    \___/ \__,_//____/ \__,_//_/    \__, /
-//                                                                            /____/
-
-
-// File: contracts/helpers/interfaces/IBondCalculator.sol
-
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
@@ -473,7 +429,6 @@ contract OTWOTreasury is Ownable {
     uint public sOTWOQueue; // Delays change to sOTWO address
 
     address public WSOHM;
-    address public USDT;
 
     uint public totalReserves; // Risk-free value of all assets
     uint public totalDebt;
@@ -481,10 +436,7 @@ contract OTWOTreasury is Ownable {
     constructor (
         address _OTWO,
         address _WSOHM,
-        address _USDT,
-        address _OTWOUSDT,
         address _OTWOWSOHM,
-        address _usdtBondCalculator,
         address _wsOHMBondCalculator,
         uint _secondsNeededForQueue
     ) {
@@ -492,17 +444,9 @@ contract OTWOTreasury is Ownable {
         OTWO = _OTWO;
 
         WSOHM = _WSOHM;
-        USDT = _USDT;
 
         isReserveToken[ _WSOHM ] = true;
         reserveTokens.push( _WSOHM );
-
-        isReserveToken[ _USDT ] = true;
-        reserveTokens.push( _USDT );
-
-        isLiquidityToken[ _OTWOUSDT ] = true;
-        liquidityTokens.push( _OTWOUSDT );
-        bondCalculator[_OTWOUSDT] = _usdtBondCalculator;
 
         isLiquidityToken[ _OTWOWSOHM ] = true;
         liquidityTokens.push( _OTWOWSOHM );
@@ -531,11 +475,11 @@ contract OTWOTreasury is Ownable {
         uint value = valueOf( _token, _amount );
 
         send_ = value.sub( _profit );
+
         IERC20Mintable( OTWO ).mint( msg.sender, send_ );
-
-        
+      
         totalReserves = totalReserves.add( value );
-
+        
         emit ReservesUpdated( totalReserves );
 
         emit Deposit( _token, _amount, value );
@@ -572,7 +516,7 @@ contract OTWOTreasury is Ownable {
 
         uint value = valueOf( _token, _amount );
 
-        uint maximumDebt = IERC20( sOTWO ).balanceOf( msg.sender ); // Can only borrow against sOTWO held
+        uint maximumDebt = IERC20( sOTWO ).balanceOf( msg.sender ); 
         uint availableDebt = maximumDebt.sub( debtorBalance[ msg.sender ] );
         require( value <= availableDebt, "Exceeds debt limit" );
 
@@ -651,10 +595,8 @@ contract OTWOTreasury is Ownable {
      */
     function mintRewards( address _recipient, uint _amount ) external {
         require( isRewardManager[ msg.sender ], "Not approved as reward manager" );
-        console.log("_amount is %s", _amount);
         require( _amount <= excessReserves(), "Insufficient reserves" );
 
-        console.log("Minint rewards, amount %s, recipient %s", _amount, _recipient);
         IERC20Mintable( OTWO ).mint( _recipient, _amount );
 
         emit RewardsMinted( msg.sender, _recipient, _amount );
@@ -665,17 +607,7 @@ contract OTWOTreasury is Ownable {
         @return uint
      */
     function excessReserves() public view returns ( uint ) {
-        console.log("Treasury excessReserves(): total reserves: %s", totalReserves/1e9);
-        console.log("Treasury excessReserves(): total supply of OTWO: %s", IERC20( OTWO ).totalSupply()/1e9);
-        console.log("Treasury excessReserves(): total debt: %s", totalDebt/1e9);
-
-        // totalDebt always = 0
         return totalReserves.sub( IERC20( OTWO ).totalSupply().sub( totalDebt ) );
-
-        // totalResrves = 400
-        // totalSupply = minted OTWO = 1
-        // OTWO total Supply = 300 OTWO
-        // excessReserves = 100 OTWO
     }
 
     /**
@@ -707,15 +639,7 @@ contract OTWOTreasury is Ownable {
      */
     function valueOf( address _token, uint _amount ) public view returns ( uint value_ ) {
         if ( isReserveToken[ _token ] ) {
-            // convert amount to match OTWO decimals
-            if ( _token == WSOHM){
-                value_ = _amount.mul(1000).mul( 10 ** IERC20( OTWO ).decimals() ).div( 10 ** IERC20( _token ).decimals() );
-            } else if (_token == USDT){
-                value_ = _amount.mul( 10 ** IERC20( OTWO ).decimals() ).div( 10 ** IERC20( _token ).decimals() ).div(100);
-            }
-            else {
-                value_ = _amount.mul( 10 ** IERC20( OTWO ).decimals() ).div( 10 ** IERC20( _token ).decimals() );
-            }
+            value_ = _amount.mul( 10 ** IERC20( OTWO ).decimals() ).div( 10 ** IERC20( _token ).decimals() );
         } else if ( isLiquidityToken[ _token ] ) {
             value_ = IBondCalculator( bondCalculator[ _token ] ).valuation( _token, _amount );
         }

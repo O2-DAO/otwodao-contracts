@@ -2,7 +2,6 @@
  *Submitted for verification at snowtrace.io on 2021-11-05
 */
 
-import './console.sol';
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.7.5;
 
@@ -554,7 +553,7 @@ contract Ownable is IOwnable {
     }
 }
 
-interface IMemo {
+interface ISOTWO {
     function rebase( uint256 ohmProfit_, uint epoch_) external returns (uint256);
 
     function circulatingSupply() external view returns (uint256);
@@ -644,7 +643,7 @@ contract OTWOStaking is Ownable {
 
         warmupInfo[ _recipient ] = Claim ({
             deposit: info.deposit.add( _amount ),
-            gons: info.gons.add( IMemo( sOTWO ).gonsForBalance( _amount ) ),
+            gons: info.gons.add( ISOTWO( sOTWO ).gonsForBalance( _amount ) ),
             expiry: epoch.number.add( warmupPeriod ),
             lock: false
         });
@@ -661,7 +660,7 @@ contract OTWOStaking is Ownable {
         Claim memory info = warmupInfo[ _recipient ];
         if ( epoch.number >= info.expiry && info.expiry != 0 ) {
             delete warmupInfo[ _recipient ];
-            IWarmup( warmupContract ).retrieve( _recipient, IMemo( sOTWO ).balanceForGons( info.gons ) );
+            IWarmup( warmupContract ).retrieve( _recipient, ISOTWO( sOTWO ).balanceForGons( info.gons ) );
         }
     }
 
@@ -672,7 +671,7 @@ contract OTWOStaking is Ownable {
         Claim memory info = warmupInfo[ msg.sender ];
         delete warmupInfo[ msg.sender ];
 
-        IWarmup( warmupContract ).retrieve( address(this), IMemo( sOTWO ).balanceForGons( info.gons ) );
+        IWarmup( warmupContract ).retrieve( address(this), ISOTWO( sOTWO ).balanceForGons( info.gons ) );
         IERC20( OTWO ).safeTransfer( msg.sender, info.deposit );
     }
 
@@ -701,7 +700,7 @@ contract OTWOStaking is Ownable {
         @return uint
      */
     function index() public view returns ( uint ) {
-        return IMemo( sOTWO ).index();
+        return ISOTWO( sOTWO ).index();
     }
 
     /**
@@ -710,7 +709,7 @@ contract OTWOStaking is Ownable {
     function rebase() public {
         if( epoch.endTime <= uint32(block.timestamp) ) {
 
-            IMemo( sOTWO ).rebase( epoch.distribute, epoch.number );
+            ISOTWO( sOTWO ).rebase( epoch.distribute, epoch.number );
 
             epoch.endTime = epoch.endTime.add32( epoch.length );
             epoch.number++;
@@ -720,7 +719,7 @@ contract OTWOStaking is Ownable {
             }
 
             uint balance = contractBalance();
-            uint staked = IMemo( sOTWO ).circulatingSupply();
+            uint staked = ISOTWO( sOTWO ).circulatingSupply();
 
             if( balance <= staked ) {
                 epoch.distribute = 0;
